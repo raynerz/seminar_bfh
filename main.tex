@@ -37,6 +37,36 @@
 %\setlength{\oddsidemargin}{0cm}
 \pagestyle{headings}
 
+%Code
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
 
 
 \begin{document}
@@ -343,7 +373,7 @@ Applying the CNOT gate as per its truth table evaluates to $\ket{0}\ket{0} \righ
 
 Ultimately, as it is the case with classical computing behind the layers of abstraction created by the processor and the operating system, developing quantum algorithms involves combining different logical gates to achieve a particular computation. 
 
-\subsection{Quantum Algorithms}
+\subsection{Quantum Algorithms}\label{ss:quantumalgorithms}
 
 The core value proposition of quantum computers consist in an increased speed up in calculations compared to traditional ones. This is achieved due to qubits being in a superposition of all possible states which allows algorithms to run on every possible output simultaneously \cite{bernhardt2019quantum}. In order to find the right result of the algorithm, the programmer relies on the probabilities of these superposed states, introducing a fundamental difference between both computational models.\\
 
@@ -473,6 +503,55 @@ Among the possibilities that Qiskit offers, it allows to interact directly with 
 \subsection{Deutsch Algorithm Implementation in the IBM Quantum Experience}
 %http://akyrillidis.github.io/notes/quant_post_8
 %
+The IBM Quantum Experience \cite{ibm-q-e} allows to run quantum algorithms via cloud using Jupyter notebooks to compose algorithms with Qiskit's SDK or by providing a graphical interface to compose circuits directly. In this section we will implement the Deutsch Algorithm described mathematically in chapter \ref{ss:quantumalgorithms} which will allow us to understand how to program a quantum computer. Tthe IBM Quantum Experience would form part of the application layer showed in figure \ref{fig:qc-layers}, since it interfaces between the programmer and the quantum computer. In this case, we will make use of a quantum simulator that enables to run job's using a few qubits simulated by a classical computer. This approach works until the amount of qubits is sufficiently large to make the classical hardware unable to calculate the states probabilities, once this barrier is reached, the literature tends to describe it as having achieved Quantum Supremacy \cite{Arute2019}.\\
+
+In this article we will focus in the Jupyter notebook implementation since it allows us to understand better the step by step process for executing the algorithm, the reader can refer to figure \ref{fig:deutschalgorithmquantumcircuit} in order to have a graphical representation and compare with the Python code. The complete implementation of this algorithm can be found Murat Koptur's Github repository \cite{kopturgithub}.
+
+After creating an IBM account and opening a new Jupyter Notebook, we start by importing the libraries needed to reach the quantum computer and loading our IBM account to identify ourselves within the system.
+
+\begin{lstlisting}[language=python]
+from qiskit import IBMQ, BasicAer
+from qiskit.providers.ibmq import least_busy
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, execute
+from qiskit.tools.monitor import job_monitor
+from qiskit.compiler import transpile, assemble
+from qiskit.tools.jupyter import *
+from qiskit.visualization import *
+provider = IBMQ.load_account()
+\end{lstlisting}
+
+We will proceed to initialize the qubits and bits needed for this computation. In this case, we need 2 qubits and 2 classical bits in order to store the results. We also need to create a circuit with these two elements, analog to the circuit in figure \ref{fig:deutschalgorithmquantumcircuit}.
+
+\begin{lstlisting}[language=python]
+qr = QuantumRegister(2)  
+cr = ClassicalRegister(2) 
+circuit = QuantumCircuit(qr, cr)
+\end{lstlisting}
+
+In order to run the algorithm properly the bottom bit in figure \ref{fig:deutschalgorithmquantumcircuit} needs to be initialised to $\ket{1}$. In order to perform this operation we need to apply an X-Gate, which forms part of the Pauli transformations. After this step, Qiskit requires us to impose barriers in order to isolate the execution of each step.
+
+\begin{lstlisting}[language=python]
+circuit.x(qr[1]) 
+
+circuit.barrier()
+\end{lstlisting}
+We apply a Hadamard gate to both qubits in order to reach a superposition state.
+\begin{lstlisting}[language=python]
+circuit.h(qr[0])
+circuit.h(qr[1])
+
+circuit.barrier()
+\end{lstlisting}
+Now we will implement the Oracle function, since we want to know whether the function is Constant or Balanced, we can ask the Oracle whether our function is Constant by applying a CNOT Gate. 
+\begin{lstlisting}
+circuit.cx(qr[0], qr[1])
+
+circuit.barrier()
+\end{lstlisting}
+
+https://quantumcomputing.stackexchange.com/questions/9566/implementing-four-oracles-for-the-deutsch-algorithm-preferably-on-ibm-q-experie
+
+
 
 \section{Conclusion}
 
