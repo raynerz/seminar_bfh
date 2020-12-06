@@ -503,9 +503,9 @@ Among the possibilities that Qiskit offers, it allows to interact directly with 
 \subsection{Deutsch Algorithm Implementation in the IBM Quantum Experience}
 %http://akyrillidis.github.io/notes/quant_post_8
 %
-The IBM Quantum Experience \cite{ibm-q-e} allows to run quantum algorithms via cloud using Jupyter notebooks to compose algorithms with Qiskit's SDK or by providing a graphical interface to compose circuits directly. In this section we will implement the Deutsch Algorithm described mathematically in chapter \ref{ss:quantumalgorithms} which will allow us to understand how to program a quantum computer. Tthe IBM Quantum Experience would form part of the application layer showed in figure \ref{fig:qc-layers}, since it interfaces between the programmer and the quantum computer. In this case, we will make use of a quantum simulator that enables to run job's using a few qubits simulated by a classical computer. This approach works until the amount of qubits is sufficiently large to make the classical hardware unable to calculate the states probabilities, once this barrier is reached, the literature tends to describe it as having achieved Quantum Supremacy \cite{Arute2019}.\\
+The IBM Quantum Experience \cite{ibm-q-e} allows to run quantum algorithms via cloud using Jupyter notebooks and Qiskit's SDK, it also provides a graphical interface to compose circuits. In this section we will implement the Deutsch Algorithm described mathematically in chapter \ref{ss:quantumalgorithms} which will allow us to understand how to program a quantum computer. The IBM Quantum Experience would form part of the application layer showed in figure \ref{fig:qc-layers}, since it interfaces between the programmer and the quantum computer. In this case, we will make use of a quantum simulator that enables to run job's using a few qubits simulated by a classical computer. This approach works until the amount of qubits is sufficiently large to make the classical hardware unable to calculate the states probabilities, once this barrier is reached, the literature describes it as having achieved Quantum Supremacy \cite{Arute2019}.\\
 
-In this article we will focus in the Jupyter notebook implementation since it allows us to understand better the step by step process for executing the algorithm, the reader can refer to figure \ref{fig:deutschalgorithmquantumcircuit} in order to have a graphical representation and compare with the Python code. The complete implementation of this algorithm can be found Murat Koptur's Github repository \cite{kopturgithub}.
+In this article we will focus in the Jupyter notebook implementation since it allows us to understand better the step by step process for executing the algorithm, the reader can refer to figure \ref{fig:deutschalgorithmquantumcircuit} in order to have a graphical representation and compare with the Python code. The complete source implementation of this algorithm can be found Murat Koptur's Github repository \cite{kopturgithub}.
 
 After creating an IBM account and opening a new Jupyter Notebook, we start by importing the libraries needed to reach the quantum computer and loading our IBM account to identify ourselves within the system.
 
@@ -528,7 +528,7 @@ cr = ClassicalRegister(2)
 circuit = QuantumCircuit(qr, cr)
 \end{lstlisting}
 
-In order to run the algorithm properly the bottom bit in figure \ref{fig:deutschalgorithmquantumcircuit} needs to be initialised to $\ket{1}$. In order to perform this operation we need to apply an X-Gate, which forms part of the Pauli transformations. After this step, Qiskit requires us to impose barriers in order to isolate the execution of each step.
+In order to run the algorithm properly, the bottom bit in figure \ref{fig:deutschalgorithmquantumcircuit} needs to be initialised to $\ket{1}$. For this operation we need to apply an X-Gate, which forms part of the Pauli transformations and basically sets the qubit to state $\ket{1}$. After this step, Qiskit requires us to impose barriers in order to isolate the execution of each step.
 
 \begin{lstlisting}[language=python]
 circuit.x(qr[1]) 
@@ -542,19 +542,67 @@ circuit.h(qr[1])
 
 circuit.barrier()
 \end{lstlisting}
-Now we will implement the Oracle function, since we want to know whether the function is Constant or Balanced, we can ask the Oracle whether our function is Constant by applying a CNOT Gate. 
+Now we will implement the Oracle function. Since we want to know whether the function is constant or balanced, we can ask the Oracle whether our function is balanced by applying a CNOT Gate. 
 \begin{lstlisting}
 circuit.cx(qr[0], qr[1])
 
 circuit.barrier()
 \end{lstlisting}
 
-https://quantumcomputing.stackexchange.com/questions/9566/implementing-four-oracles-for-the-deutsch-algorithm-preferably-on-ibm-q-experie
+As the next step, a hadamard gate is applied to the top qubit in order to revert the superposition of states.
+\begin{lstlisting}
+circuit.h(qr[0])
 
+circuit.barrier()
+\end{lstlisting}
+Finally we measure the top qubit in order to check the results of the algorithm.
+
+\begin{lstlisting}
+circuit.measure(qr[0], cr[0])
+\end{lstlisting}
+
+In order to output our results we have to set up the machine to use the simulator for executing the quantum algorithm and load the measurement into the classical processing layer (See figure \ref{fig:qc-layers}). This would give us an answer in terms of classical bits that we can interpret accordingly.
+
+\begin{lstlisting}[language=python]
+backend = BasicAer.get_backend('qasm_simulator')
+shots = 1024 #Specifies the number of times the circuit be executed 
+results = execute(circuit, backend=backend, shots=shots).result()
+answer = results.get_counts()
+print(answer) #{'01': 1024}
+\end{lstlisting}
+The answer obtained indicates that the qubit measured is on state $\ket{1}$ during a total of 1024 executions. If we refer to table \ref{tab:deutsch.quantum_hadamard2}, we will find that for a balanced function the Hadamard result returns a string '01' or $\ket{1}$. This confirms the quantum result of Deutsch algorithm where a function has to be evaluated only once in order to determine if it's balanced or constant. If we would like to verify the algorithm for the simplest case of constant functions, we would omit the CNOT gate, which would give us the following.
+
+\begin{lstlisting}[language = python]
+qr = QuantumRegister(2)  
+cr = ClassicalRegister(2) 
+circuit = QuantumCircuit(qr, cr)
+
+circuit.x(qr[1]) 
+
+circuit.barrier()
+
+circuit.h(qr[0])
+circuit.h(qr[1])
+
+circuit.barrier()
+
+circuit.barrier()
+circuit.h(qr[0])
+circuit.measure(qr[0], cr[0])
+
+backend = BasicAer.get_backend('qasm_simulator')
+shots = 1024 #Specifies the number of times the circuit be executed 
+results = execute(circuit, backend=backend, shots=shots).result()
+answer = results.get_counts()
+print(answer) #{'00': 1024}
+\end{lstlisting}
+
+As we can notice, the oracle oracle function returns $\ket{0}$ for a constant function with input 0. From this result we can conclude that the oracle function determines the results of the algorithm\footnote{This is also the case in most of quantum algorithms.} and that implementing a different oracle function for each one of the functions will yield a result, according to table \ref{tab:deutsch.quantum_hadamard2}. The reader can refer to the following stack-exchange question for the implementation of the remaining oracle functions \cite{veseli2020}.
 
 
 \section{Conclusion}
-
+This report describes the fundamental concepts involved in programming a quantum computer. Since quantum programming introduces a fundamental change of paradigm on how to perform computations due to it's probabilistic nature, the programmer has to know how to work with these probabilities and modify them according to the desired results. It is fundamental for programmers to understand the quantum physics concepts applied to computations like superposition, entanglement or measurement and secondly the effect that quantum gates and circuits have on qubits, because they are a constant in every quantum algorithm. Furthermore, programmers need to understand the mathematics behind existing algorithms in order to use them effectively for their purposes and apply them to their own applications, but it is probable that this need disappears with the time as more tools and abstractions are developed in order to make quantum computers easier to use. One example of the latter is the IBM Quantum Experience, which allows us to implement existing algorithms and analyse their results but unfortunately, these still cannot be used in productions applications due to the lack of qubits needed to produce useful outputs that arise from millions of possible simultaneous states. Even though we are at an early stage in the technology, the fact that tools like this one are already made available to programmers all over the world represents a significant potential for the development of new applications and algorithms.\\
+Further work into the topic would require us to present and analyse in depth certain concepts (e.g. no-cloning theorem or superdense coding) algorithms (Shor and Groover algorithms) that even though they are fundamental knowledge steps of quantum programming were omitted in this article due to their length and complexity. The reason for this being that the author wanted to remove all the non essential information to understand how quantum programming works, with the objective of making the topic more accessible and produce an easy to follow guide in order to get started with quantum programming. Finally, another fundamental topic that was not mentioned on this article due to the reason mentioned above but that has to be researched further is qubit error correction and its implications, which is one the most fundamental challenges that quantum programming has at the moment \cite{bernhardt2019quantum}.
 
 \markboth{}{}
 
